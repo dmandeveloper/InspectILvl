@@ -2,7 +2,7 @@
 ## Title: InspectILvl
 ## Notes: Item level on inspect slots, inspect average and unit tooltips.
 ## Author: Deeman Gaming
-## Version: 1.1
+## Version: 1.2
 ## SavedVariables: InspectILvlDB
 
 InspectILvl.lua

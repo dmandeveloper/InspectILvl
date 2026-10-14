@@ -19,7 +19,8 @@ A small World of Warcraft addon for **Mists of Pandaria 5.4.8** (build 18414, e.
 - **Per-slot item level** on every gear slot of the inspect window, coloured by item quality.
 - **Average item level** under the player's name in the inspect window.
 - **Average item level** as a line in player tooltips (your own tooltip uses the game's value; others are inspected in the background).
-- Each of the three can be switched on or off in **Interface → AddOns → InspectILvl**.
+- **Average item level** in your own Character window, and optionally **per-slot item level** there too (off by default).
+- Each of the options can be switched on or off in **Interface → AddOns → InspectILvl**.
 
 Item levels are read from the item tooltip, so upgrade bonuses (e.g. Valor upgrades) are included. The average uses the game's rule: 16 slots, shirt and tabard excluded, and a two-handed or ranged weapon with an empty off-hand counts twice. The result is rounded to a whole number like the default UI.
 

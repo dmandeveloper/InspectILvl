@@ -1,7 +1,9 @@
--- options (saved in InspectILvlDB); a missing key means "on"
+-- options (saved in InspectILvlDB); a missing key means "on", except those listed here
+local DEFAULT_OFF = { charSlots = true }
 local function opt(key)
-    local d = InspectILvlDB
-    return not d or d[key] ~= false
+    local v = InspectILvlDB and InspectILvlDB[key]
+    if v == nil then return not DEFAULT_OFF[key] end
+    return v
 end
 
 local SLOTS = {
@@ -292,6 +294,63 @@ tipEvents:SetScript("OnEvent", function(_, _, guid)
 end)
 
 ----------------------------------------------------------------------
+-- Character window: average item level and per-slot item levels
+----------------------------------------------------------------------
+local charLabels, charAvg = {}, nil
+
+local function RefreshChar()
+    if not (PaperDollFrame and PaperDollFrame:IsShown()) then return end
+    local showSlots, showAvg = opt("charSlots"), opt("charAvg")
+    for _, name in ipairs(SLOTS) do
+        local btn = _G["Character" .. name .. "Slot"]
+        if btn then
+            local fs = charLabels[name]
+            if not fs then
+                fs = btn:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
+                fs:SetPoint("BOTTOM", btn, "BOTTOM", 0, 2)
+                charLabels[name] = fs
+            end
+            local lvl, equipped, link
+            if showSlots then lvl, equipped, link = slotLevel("player", btn:GetID()) end
+            if lvl then
+                local q = select(3, GetItemInfo(link))
+                if q then fs:SetTextColor(GetItemQualityColor(q)) else fs:SetTextColor(1, 1, 1) end
+                fs:SetText(lvl)
+            else
+                fs:SetText("")
+            end
+        end
+    end
+    if not charAvg then
+        charAvg = PaperDollFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        charAvg:SetPoint("TOP", CharacterLevelText or CharacterFrameTitleText, "BOTTOM", 0, -2)
+    end
+    local _, equippedAvg = GetAverageItemLevel()
+    if showAvg and equippedAvg and equippedAvg > 0 then
+        charAvg:SetText(string.format("Item Level: |cffffffff%d|r", Round(equippedAvg)))
+    else
+        charAvg:SetText("")
+    end
+end
+
+-- gear/average values update a moment after the equipment event
+local charUpdater = CreateFrame("Frame")
+charUpdater:Hide()
+charUpdater:SetScript("OnUpdate", function(self, elapsed)
+    self.t = (self.t or 0) + elapsed
+    if self.t >= 0.2 then self.t = 0; self:Hide(); RefreshChar() end
+end)
+
+if PaperDollFrame then PaperDollFrame:HookScript("OnShow", RefreshChar) end
+local charEvents = CreateFrame("Frame")
+charEvents:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+charEvents:RegisterEvent("UNIT_INVENTORY_CHANGED")
+charEvents:SetScript("OnEvent", function(_, event, unit)
+    if event == "UNIT_INVENTORY_CHANGED" and unit ~= "player" then return end
+    if PaperDollFrame and PaperDollFrame:IsShown() then charUpdater:Show() end
+end)
+
+----------------------------------------------------------------------
 -- Interface > AddOns options page
 ----------------------------------------------------------------------
 local panel = CreateFrame("Frame", "InspectILvlOptions", UIParent)
@@ -308,10 +367,13 @@ local OPTIONS = {
     { key = "slots",      text = "Item level on each slot in the inspect window" },
     { key = "inspectAvg", text = "Average item level in the inspect window" },
     { key = "tooltip",    text = "Average item level in player tooltips" },
+    { key = "charAvg",    text = "Average item level in your Character window" },
+    { key = "charSlots",  text = "Item level on each slot in your Character window" },
 }
 local boxes = {}
 local function applyChange()
     if InspectFrame and InspectFrame:IsShown() then Refresh() end
+    RefreshChar()
 end
 for i, o in ipairs(OPTIONS) do
     local cb = CreateFrame("CheckButton", "InspectILvlOpt" .. o.key, panel, "InterfaceOptionsCheckButtonTemplate")
