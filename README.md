@@ -12,6 +12,8 @@ A small World of Warcraft addon for **Mists of Pandaria 5.4.8** (build 18414, e.
 
 ![Player tooltip](screenshots/tooltip.png)
 
+![Options](screenshots/options.png)
+
 ## Features
 
 - **Per-slot item level** on every gear slot of the inspect window, coloured by item quality.
