@@ -160,8 +160,12 @@ end
 -- Unit tooltip: "Item Level: N" for players (self = game value, others = inspect)
 ----------------------------------------------------------------------
 local cache = {}      -- guid -> { v = rounded ilvl, t = time }
-local pending         -- { unit, guid, tries }
+local cacheCount = 0
+local pending         -- { unit, guid, tries, start, last }
 local lastNotify = 0
+local CACHE_SECS = 120
+local CACHE_MAX = 200
+local MIN_SLOTS = 8       -- fewer equipped slots than this = data not loaded yet
 local PENDING_SECS = 6    -- give up on an inspect whose INSPECT_READY never came
 local ownNotify, foreignNotify = false, 0
 
@@ -169,8 +173,19 @@ local ownNotify, foreignNotify = false, 0
 hooksecurefunc("NotifyInspect", function()
     if not ownNotify then foreignNotify = GetTime() end
 end)
-local CACHE_SECS = 120
-local MIN_SLOTS = 8   -- fewer equipped slots than this = data not loaded yet
+
+local function cacheStore(guid, v)
+    if not cache[guid] then
+        cacheCount = cacheCount + 1
+        if cacheCount > CACHE_MAX then    -- drop expired entries
+            local now = GetTime()
+            for g, c in pairs(cache) do
+                if now - c.t >= CACHE_SECS then cache[g] = nil; cacheCount = cacheCount - 1 end
+            end
+        end
+    end
+    cache[guid] = { v = v, t = GetTime() }
+end
 
 local function addLine(tt, v)
     tt:AddLine("Item Level: |cffffd100" .. v .. "|r")
@@ -202,7 +217,7 @@ finish = function()
     local ready = avgv and n >= MIN_SLOTS and pending.last == avgv
     if avgv then pending.last = avgv end
     if ready then
-        cache[guid] = { v = Round(avgv), t = GetTime() }
+        cacheStore(guid, Round(avgv))
         pending = nil
         if not (InspectFrame and InspectFrame:IsShown()) and foreignNotify < started then
             ClearInspectPlayer()
@@ -216,10 +231,12 @@ finish = function()
     end
 end
 
+-- returns true if the caller should try again shortly (busy or rate-limited)
 local function request(unit, guid)
     if pending and GetTime() - pending.start > PENDING_SECS then pending = nil end
-    if pending or (InspectFrame and InspectFrame:IsShown()) then return end
-    if not CanInspect(unit) or GetTime() - lastNotify < 1.5 then return end
+    if InspectFrame and InspectFrame:IsShown() then return end
+    if not CanInspect(unit) or not CheckInteractDistance(unit, 1) then return end
+    if pending or GetTime() - lastNotify < 1.5 then return true end
     lastNotify = GetTime()
     pending = { unit = unit, guid = guid, tries = 0, start = GetTime() }
     ownNotify = true
@@ -229,7 +246,8 @@ end
 
 -- only inspect once the mouse has rested on a player, not while sweeping past
 local HOVER_DELAY = 0.3
-local hoverGuid
+local HOVER_TRIES = 8     -- re-checks while a request is busy or rate-limited
+local hoverGuid, hoverTries
 local hoverFrame = CreateFrame("Frame")
 hoverFrame:Hide()
 hoverFrame:SetScript("OnUpdate", function(self, elapsed)
@@ -240,7 +258,11 @@ hoverFrame:SetScript("OnUpdate", function(self, elapsed)
     hoverGuid = nil
     if not guid or not GameTooltip:IsShown() then return end
     local _, unit = GameTooltip:GetUnit()
-    if unit and UnitGUID(unit) == guid then request(unit, guid) end
+    if unit and UnitGUID(unit) == guid and request(unit, guid) and hoverTries < HOVER_TRIES then
+        hoverTries = hoverTries + 1
+        hoverGuid, self.t = guid, 0
+        self:Show()
+    end
 end)
 
 GameTooltip:HookScript("OnTooltipSetUnit", function(tt)
@@ -257,7 +279,7 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(tt)
     if c and GetTime() - c.t < CACHE_SECS then
         addLine(tt, c.v)
     elseif guid then
-        hoverGuid = guid
+        hoverGuid, hoverTries = guid, 0
         hoverFrame.t = 0
         hoverFrame:Show()
     end
