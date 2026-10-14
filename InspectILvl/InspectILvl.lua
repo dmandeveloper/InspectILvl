@@ -227,6 +227,22 @@ local function request(unit, guid)
     ownNotify = false
 end
 
+-- only inspect once the mouse has rested on a player, not while sweeping past
+local HOVER_DELAY = 0.3
+local hoverGuid
+local hoverFrame = CreateFrame("Frame")
+hoverFrame:Hide()
+hoverFrame:SetScript("OnUpdate", function(self, elapsed)
+    self.t = (self.t or 0) + elapsed
+    if self.t < HOVER_DELAY then return end
+    self:Hide()
+    local guid = hoverGuid
+    hoverGuid = nil
+    if not guid or not GameTooltip:IsShown() then return end
+    local _, unit = GameTooltip:GetUnit()
+    if unit and UnitGUID(unit) == guid then request(unit, guid) end
+end)
+
 GameTooltip:HookScript("OnTooltipSetUnit", function(tt)
     if not opt("tooltip") then return end
     local _, unit = tt:GetUnit()
@@ -241,7 +257,9 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(tt)
     if c and GetTime() - c.t < CACHE_SECS then
         addLine(tt, c.v)
     elseif guid then
-        request(unit, guid)
+        hoverGuid = guid
+        hoverFrame.t = 0
+        hoverFrame:Show()
     end
 end)
 
