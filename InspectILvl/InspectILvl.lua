@@ -35,7 +35,8 @@ end
 
 -- the game shows whole numbers (our 471.94 vs its 472): round half up
 local function Round(x) return math.floor(x + 0.5) end
-local TWOHAND = { INVTYPE_2HWEAPON = true, INVTYPE_RANGED = true, INVTYPE_RANGEDRIGHT = true }
+-- wands (INVTYPE_RANGEDRIGHT) are one-handed for the average, verified against the game
+local TWOHAND = { INVTYPE_2HWEAPON = true, INVTYPE_RANGED = true }
 local labels, avg = {}, nil
 local retry = 0
 local Update
