@@ -1,6 +1,16 @@
 # InspectILvl
 
+**For MoP 5.4.8 (original client, build 18414, e.g. TwinStar). Not for MoP Classic!**
+
+[Report an issue](https://github.com/dmandeveloper/InspectILvl/issues) · [Submit a pull request](https://github.com/dmandeveloper/InspectILvl/pulls)
+
 A small World of Warcraft addon for **Mists of Pandaria 5.4.8** (build 18414, e.g. TwinStar) that shows item level when you inspect or hover other players. Written for the original 5.4.x client API, not MoP Classic.
+
+## Screenshots
+
+![Inspect window](screenshots/inspect.png)
+
+![Player tooltip](screenshots/tooltip.png)
 
 ## Features
 
@@ -13,7 +23,7 @@ Item levels are read from the item tooltip, so upgrade bonuses (e.g. Valor upgra
 
 ## Install
 
-Copy the `InspectILvl` folder into `<WoW>/Interface/AddOns/`, then restart the client (a `/reload` is not enough the first time, because the addon declares a saved variable).
+Download the zip from the [latest release](https://github.com/dmandeveloper/InspectILvl/releases/latest) and extract the `InspectILvl` folder into `<WoW>/Interface/AddOns/` (or copy it from this repo). The folder must be named `InspectILvl`, then restart the client (a `/reload` is not enough the first time, because the addon declares a saved variable).
 
 ## Slash commands
 
