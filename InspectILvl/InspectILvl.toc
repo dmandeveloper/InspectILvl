@@ -1,0 +1,8 @@
+## Interface: 50400
+## Title: InspectILvl
+## Notes: Item level on inspect slots, inspect average and unit tooltips.
+## Version: 1.1
+## OptionalDeps: LibRetail
+## SavedVariables: InspectILvlDB
+
+InspectILvl.lua
