@@ -98,7 +98,7 @@ Update = function()
     local unit = InspectFrame and InspectFrame.unit
     if not unit or not UnitExists(unit) then return end
     local showSlots, showAvg = opt("slots"), opt("inspectAvg")
-    local total, count, missing = 0, 0, false
+    local count, missing = 0, false
     for _, name in ipairs(SLOTS) do
         local fs, btn = getLabel(name)
         if fs then
@@ -108,7 +108,7 @@ Update = function()
                 local _, _, q = GetItemInfo(link)
                 if q then fs:SetTextColor(GetItemQualityColor(q)) else fs:SetTextColor(1, 1, 1) end
                 fs:SetText(showSlots and lvl or "")
-                total, count = total + lvl, count + 1
+                count = count + 1
             else
                 fs:SetText("")
                 if equipped then missing = true end
@@ -162,6 +162,13 @@ end
 local cache = {}      -- guid -> { v = rounded ilvl, t = time }
 local pending         -- { unit, guid, tries }
 local lastNotify = 0
+local PENDING_SECS = 6    -- give up on an inspect whose INSPECT_READY never came
+local ownNotify, foreignNotify = false, 0
+
+-- note inspects started by anyone else, so we never clear their data
+hooksecurefunc("NotifyInspect", function()
+    if not ownNotify then foreignNotify = GetTime() end
+end)
 local CACHE_SECS = 120
 local MIN_SLOTS = 8   -- fewer equipped slots than this = data not loaded yet
 
@@ -188,6 +195,7 @@ finish = function()
     if not pending then return end
     local unit, guid = pending.unit, pending.guid
     if not UnitExists(unit) or UnitGUID(unit) ~= guid then pending = nil; return end
+    local started = pending.start
     local avgv, n = Compute(unit)
     -- gear data can arrive in pieces and unloaded slots look empty, so only
     -- trust a read that has enough slots and is identical to the previous one
@@ -196,7 +204,9 @@ finish = function()
     if ready then
         cache[guid] = { v = Round(avgv), t = GetTime() }
         pending = nil
-        if not (InspectFrame and InspectFrame:IsShown()) then ClearInspectPlayer() end
+        if not (InspectFrame and InspectFrame:IsShown()) and foreignNotify < started then
+            ClearInspectPlayer()
+        end
         refreshTooltip(guid)
     elseif pending.tries < 8 then
         pending.tries = pending.tries + 1
@@ -207,11 +217,14 @@ finish = function()
 end
 
 local function request(unit, guid)
+    if pending and GetTime() - pending.start > PENDING_SECS then pending = nil end
     if pending or (InspectFrame and InspectFrame:IsShown()) then return end
     if not CanInspect(unit) or GetTime() - lastNotify < 1.5 then return end
     lastNotify = GetTime()
-    pending = { unit = unit, guid = guid, tries = 0 }
+    pending = { unit = unit, guid = guid, tries = 0, start = GetTime() }
+    ownNotify = true
     NotifyInspect(unit)
+    ownNotify = false
 end
 
 GameTooltip:HookScript("OnTooltipSetUnit", function(tt)
@@ -235,7 +248,7 @@ end)
 local tipEvents = CreateFrame("Frame")
 tipEvents:RegisterEvent("INSPECT_READY")
 tipEvents:SetScript("OnEvent", function(_, _, guid)
-    if pending and pending.guid == guid then finish() end
+    if pending and (not guid or guid == pending.guid) then finish() end
 end)
 
 ----------------------------------------------------------------------

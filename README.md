@@ -22,7 +22,6 @@ Copy the `InspectILvl` folder into `<WoW>/Interface/AddOns/`, then restart the c
 ## Notes
 
 - The tooltip value only appears after a short inspect (about a second). A read is only trusted when the target has at least 8 equipped slots and two consecutive reads agree, since gear data can arrive in pieces.
-- Optional dependency on `LibRetail` (for `C_Timer`) is declared but not required by the current code.
 
 ## License
 
