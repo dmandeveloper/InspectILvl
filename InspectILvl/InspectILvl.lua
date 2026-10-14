@@ -151,8 +151,28 @@ end)
 if IsAddOnLoaded("Blizzard_InspectUI") then f:GetScript("OnEvent")(f, "ADDON_LOADED", "Blizzard_InspectUI") end
 
 -- debug: /iilvl -> our formula vs the game's own value for the player
+-- /iilvl weapons -> weapon types and our average for the inspect window's unit, or the target
+local function weaponDebug()
+    local unit = InspectFrame and InspectFrame:IsShown() and InspectFrame.unit or "target"
+    if not UnitExists(unit) then print("InspectILvl: no unit (open Inspect, or target a player)"); return end
+    print("InspectILvl weapons for " .. (UnitName(unit) or unit) .. ":")
+    for _, id in ipairs({ 16, 17 }) do
+        local link = GetInventoryItemLink(unit, id)
+        if link then
+            local _, _, _, ilvl, _, _, _, _, equipLoc = GetItemInfo(link)
+            print(string.format("  slot %d: %s  type=%s  ilvl=%s  counted twice=%s", id, link,
+                tostring(equipLoc), tostring(ilvl), tostring(id == 16 and TWOHAND[equipLoc] and not GetInventoryItemLink(unit, 17) or false)))
+        else
+            print("  slot " .. id .. ": empty")
+        end
+    end
+    local avgv, n = Compute(unit)
+    print(string.format("  our average: %s (raw %s, %s slots)", avgv and Round(avgv) or "n/a", avgv and string.format("%.2f", avgv) or "-", tostring(n)))
+end
+
 SLASH_INSPECTILVL1 = "/iilvl"
-SlashCmdList["INSPECTILVL"] = function()
+SlashCmdList["INSPECTILVL"] = function(msg)
+    if msg and msg:lower():match("^%s*weapons") then return weaponDebug() end
     local mine = Compute("player")
     local _, equipped = GetAverageItemLevel()
     print(string.format("InspectILvl self-check: ours %s (raw %s) | game equipped %.1f",

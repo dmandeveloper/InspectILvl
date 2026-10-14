@@ -43,6 +43,7 @@ Download the zip from the [latest release](https://github.com/dmandeveloper/Insp
 ## Slash commands
 
 - `/iilvl` — self-check: prints this addon's average for your own gear next to the game's `GetAverageItemLevel()`.
+- `/iilvl weapons` — debug: prints the weapon types, item levels and whether a main hand is counted twice for the player in the inspect window (or your target), plus the computed average.
 
 ## Notes
 
