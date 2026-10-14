@@ -35,8 +35,20 @@ end
 
 -- the game shows whole numbers (our 471.94 vs its 472): round half up
 local function Round(x) return math.floor(x + 0.5) end
--- wands (INVTYPE_RANGEDRIGHT) are one-handed for the average, verified against the game
-local TWOHAND = { INVTYPE_2HWEAPON = true, INVTYPE_RANGED = true }
+-- INVTYPE_RANGEDRIGHT covers wands (counted once, verified against the game) but also
+-- guns and crossbows (two-handers); only these classes can use a wand, so they get no doubling
+local TWOHAND = { INVTYPE_2HWEAPON = true, INVTYPE_RANGED = true, INVTYPE_RANGEDRIGHT = true }
+local WAND_CLASSES = { MAGE = true, PRIEST = true, WARLOCK = true }
+
+-- a two-hander or ranged weapon with an empty off-hand counts twice
+local function countsTwice(unit, equipLoc)
+    if not TWOHAND[equipLoc] or GetInventoryItemLink(unit, 17) then return false end
+    if equipLoc == "INVTYPE_RANGEDRIGHT" then
+        local _, class = UnitClass(unit)
+        return not WAND_CLASSES[class]
+    end
+    return true
+end
 local labels, avg = {}, nil
 local retry = 0
 local Update
@@ -88,7 +100,7 @@ local function Compute(unit)
             if name == "MainHand" then
                 local equipLoc = select(9, GetItemInfo(link))
                 if not equipLoc then return nil end
-                if TWOHAND[equipLoc] and not GetInventoryItemLink(unit, 17) then total = total + lvl end
+                if countsTwice(unit, equipLoc) then total = total + lvl end
             end
         end
     end
@@ -155,13 +167,13 @@ if IsAddOnLoaded("Blizzard_InspectUI") then f:GetScript("OnEvent")(f, "ADDON_LOA
 local function weaponDebug()
     local unit = InspectFrame and InspectFrame:IsShown() and InspectFrame.unit or "target"
     if not UnitExists(unit) then print("InspectILvl: no unit (open Inspect, or target a player)"); return end
-    print("InspectILvl weapons for " .. (UnitName(unit) or unit) .. ":")
+    print("InspectILvl weapons for " .. (UnitName(unit) or unit) .. " (" .. tostring(select(2, UnitClass(unit))) .. "):")
     for _, id in ipairs({ 16, 17 }) do
         local link = GetInventoryItemLink(unit, id)
         if link then
             local _, _, _, ilvl, _, _, _, _, equipLoc = GetItemInfo(link)
             print(string.format("  slot %d: %s  type=%s  ilvl=%s  counted twice=%s", id, link,
-                tostring(equipLoc), tostring(ilvl), tostring(id == 16 and TWOHAND[equipLoc] and not GetInventoryItemLink(unit, 17) or false)))
+                tostring(equipLoc), tostring(ilvl), tostring(id == 16 and countsTwice(unit, equipLoc))))
         else
             print("  slot " .. id .. ": empty")
         end

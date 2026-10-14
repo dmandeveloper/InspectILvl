@@ -34,7 +34,7 @@ Open **Interface → AddOns → InspectILvl**. Changes apply immediately, and **
 | Average item level in your Character window | On |
 | Item level on each slot in your Character window | **Off** |
 
-Item levels are read from the item tooltip, so upgrade bonuses (e.g. Valor upgrades) are included. The average uses the game's rule: 16 slots, shirt and tabard excluded, and a two-handed or ranged weapon with an empty off-hand counts twice. The result is rounded to a whole number like the default UI.
+Item levels are read from the item tooltip, so upgrade bonuses (e.g. Valor upgrades) are included. The average uses the game's rule: 16 slots, shirt and tabard excluded, and a two-handed or ranged weapon (guns, bows, crossbows) with an empty off-hand counts twice; wands count once. The result is rounded to a whole number like the default UI.
 
 ## Install
 
